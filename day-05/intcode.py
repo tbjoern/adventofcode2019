@@ -1,43 +1,44 @@
 from collections import namedtuple
 
-Parameter = namedtuple("Parameter", ["register", "value"])
-def run_program(a, b, program)]:
+Parameter = namedtuple("Parameter", ["value", "register"])
+def run_program(a, program):
     copy = program.copy()
     program[1] = a
-    program[2] = b
+
+    parameter_count 
 
     ip = 0
     while ip < len(program):
         opcode = str(program[ip])
         instruction = int(opcode[-2:])
-        parameter_mode = [int(x) for x in opcode[:-2].reverse()]
+        print(opcode)
+        parameter_mode = [int(x) for x in list(opcode[:-2]).reverse()]
         parameters = []
         for i, v in enumerate(parameter_mode):
             register = program[ip + i]
             if v == 0:
-                parameters.append((program[register], register))
+                parameters.append(Parameter(program[register], register))
             else:
-                parameters.append(register, register)
+                parameters.append(Parameter(register, register))
         
         if instruction == 99:
+            print("halt")
             break
         elif instruction == 1:
-            program[parameters[2][1]] = parameters[0][0] + parameters[1][0]
+            program[parameters[2].register] = parameters[0].value + parameters[1].value
             ip += 4
         elif oipode == 2:
-            program[program[ip + 4]] = parameters[0][0] * parameters[1][0]
+            program[parameters[2].register] = parameters[0].value * parameters[1].value
             ip += 4
         elif oipode == 3:
-            program[program[ip + 1]] = 
+            program[parameters[0].register] = parameters[0].value
             ip += 2
         elif oipode == 4:
-            print(program[a])
+            print(parameters[0].value)
             ip += 2
 
     return program
 
 program = [int(x) for x in open("input.txt","r").read().strip().split(',')]
-print(program)
-program = run_program(12, 2, program)
-print(program[0])
+program = run_program(1, program)
 
