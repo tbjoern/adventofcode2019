@@ -119,7 +119,11 @@ class JumpIfTrue(Instruction):
 
     def execute(self, program):
         if self.test.v != 0:
-            program.instruction_counter = self.ip
+            program.instruction_counter = self.ip.v
+            
+    @classmethod
+    def parameter_count(cls):
+        return 2
 
 class JumpIfFalse(Instruction):
     def __init__(self, test, ip):
@@ -131,8 +135,12 @@ class JumpIfFalse(Instruction):
 
     def execute(self, program):
         if self.test.v == 0:
-            program.instruction_counter = self.ip
+            program.instruction_counter = self.ip.v
             
+    @classmethod
+    def parameter_count(cls):
+        return 2
+
 class LessThan(Instruction):
     def __init__(self, a, b, dest):
         self.a = a
@@ -145,6 +153,10 @@ class LessThan(Instruction):
     def execute(self, program):
         self.dest.v = int(self.a.v < self.b.v)
 
+    @classmethod
+    def parameter_count(cls):
+        return 3
+
 class Equal(Instruction):
     def __init__(self, a, b, dest):
         self.a = a
@@ -156,6 +168,10 @@ class Equal(Instruction):
 
     def execute(self, program):
         self.dest.v = int(self.a.v == self.b.v)
+
+    @classmethod
+    def parameter_count(cls):
+        return 3
 
 class IntcodeProgram:
     def __init__(self, program):
@@ -186,6 +202,10 @@ INSTRUCTION_MAP = {
         2: Multiply,
         3: Input,
         4: Output,
+        5: JumpIfTrue,
+        6: JumpIfFalse,
+        7: LessThan,
+        8: Equal,
 }
 
 program = IntcodeProgram([int(x) for x in open("input.txt","r").read().strip().split(',')])
