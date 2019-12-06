@@ -1,17 +1,17 @@
 from collections import namedtuple
 
-INSTRUCTION_MAP = {
-        99: Halt,
-        1: Add,
-        2: Multiply,
-        3: Input,
-        4: Output,
-}
-
 class Parameter:
-    def __init__(self, register=None, value=None):
-        self.register = register
-        self.value = value
+    def __init__(self, addr, program):
+        self.addr = addr
+        self.program = program
+
+    def _get_value(self):
+        return program.registers[self.addr]
+
+    def _set_value(self, v):
+        program.registers[self.addr] = v
+
+    v = property(_get_value, _set_value)
 
 class Instruction:
     def execute():
@@ -19,21 +19,21 @@ class Instruction:
 
     @classmethod
     def from_program(cls, program):
-        opcode = next(program)
+        _, opcode = next(program)
         instruction_type = opcode % 100
         parameter_modes = opcode // 100
         instruction_cls = INSTRUCTION_MAP[instruction_type]
-        parameters = [None for i in range(instruction_cls.parameter_count()]
-        for i, parameter in enumerate(parameters):
-            register = next(program)
+        parameters = []
+        for i in range(instruction_cls.parameter_count()):
+            register_addr, register_content = next(program)
             mode = parameter_modes % 10
             parameter_modes = parameter_modes // 10
             if mode == 0:
-                value = program.registers[register]
+                parameters.append(Parameter(register_content, program))
             elif mode == 1:
-                value = register
+                parameters.append(Parameter(register_addr, program))
             else:
-            parameter[i] = value
+                raise ValueError("Unkown parameter mode")
         return instruction_cls(*parameters)
             
 
@@ -43,8 +43,11 @@ class Add(Instruction):
         self.b = b
         self.dest = dest
 
+    def __repr__(self):
+        return f"Add {self.a} {self.b} {self.dest}"
+
     def execute(self, program):
-        program.registers[dest] = a + b
+        self.dest.v = self.a.v + self.b.v
 
     @classmethod
     def parameter_count(cls):
@@ -56,30 +59,40 @@ class Multiply(Instruction):
         self.b = b
         self.dest = dest
 
+    def __repr__(self):
+        return f"Multiply {self.a} {self.b} {self.dest}"
+
     def execute(self, program):
-        program.registers[dest] = a * b
+        self.dest.v = self.a.v * self.b.v
 
     @classmethod
     def parameter_count(cls):
         return 3
 
 class Input(Instruction):
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, register):
+        self.register = register
+
+    def __repr__(self):
+        return f"Input {self.register}"
 
     def execute(self, program):
-        program.registers[value] = value
+        value = int(input("Gimme a value: "))
+        self.register.v = value
 
     @classmethod
     def parameter_count(cls):
         return 1
 
 class Output(Instruction):
-    def __init__(self, value):
-        self.value = value
+    def __init__(self, register):
+        self.register = register
+
+    def __repr__(self):
+        return f"Output {self.register}"
 
     def execute(self, program):
-        print(self.value)
+        print(self.register.v)
     
     @classmethod
     def parameter_count(cls):
@@ -89,9 +102,60 @@ class Halt(Instruction):
     def execute(self, program):
         program.halt()
 
+    def __repr__(self):
+        return f"Halt"
+
     @classmethod
     def parameter_count(cls):
         return 0
+
+class JumpIfTrue(Instruction):
+    def __init__(self, test, ip):
+        self.test = test
+        self.ip = ip
+
+    def __repr__(self):
+        return f"JumpIfTrue {self.test} {self.ip}"
+
+    def execute(self, program):
+        if self.test.v != 0:
+            program.instruction_counter = self.ip
+
+class JumpIfFalse(Instruction):
+    def __init__(self, test, ip):
+        self.test = test
+        self.ip = ip
+
+    def __repr__(self):
+        return f"JumpIfFalse {self.test} {self.ip}"
+
+    def execute(self, program):
+        if self.test.v == 0:
+            program.instruction_counter = self.ip
+            
+class LessThan(Instruction):
+    def __init__(self, a, b, dest):
+        self.a = a
+        self.b = b
+        self.dest = dest
+
+    def __repr__(self):
+        return f"LessThan {self.a} {self.b} {self.dest}"
+
+    def execute(self, program):
+        self.dest.v = int(self.a.v < self.b.v)
+
+class Equal(Instruction):
+    def __init__(self, a, b, dest):
+        self.a = a
+        self.b = b
+        self.dest = dest
+
+    def __repr__(self):
+        return f"Equal {self.a} {self.b} {self.dest}"
+
+    def execute(self, program):
+        self.dest.v = int(self.a.v == self.b.v)
 
 class IntcodeProgram:
     def __init__(self, program):
@@ -101,62 +165,29 @@ class IntcodeProgram:
         self.running = False
 
     def __next__(self):
-        value = self.registers[self.instruction_counter]
+        ret_val = (self.instruction_counter, self.registers[self.instruction_counter])
         self.instruction_counter += 1
-        return value
+        return ret_val
 
     def halt(self):
         self.running = False
 
-    def run(self, initial_values):
+    def run(self):
         self.running = True
         self.registers = self.program.copy()
         self.instruction_counter = 0
-        for register, value in inital_values:
-            self.registers[register] = value
         while self.instruction_counter < len(self.registers) and self.running:
             instruction = Instruction.from_program(self)
             instruction.execute(self)
 
-Parameter = namedtuple("Parameter", ["value", "register"])
-def run_program(a, program):
-    copy = program.copy()
-    program[1] = a
+INSTRUCTION_MAP = {
+        99: Halt,
+        1: Add,
+        2: Multiply,
+        3: Input,
+        4: Output,
+}
 
-    parameter_count 
-
-    ip = 0
-    while ip < len(program):
-        opcode = str(program[ip])
-        instruction = int(opcode[-2:])
-        print(opcode)
-        parameter_mode = [int(x) for x in list(opcode[:-2]).reverse()]
-        parameters = []
-        for i, v in enumerate(parameter_mode):
-            register = program[ip + i]
-            if v == 0:
-                parameters.append(Parameter(program[register], register))
-            else:
-                parameters.append(Parameter(register, register))
-        
-        if instruction == 99:
-            print("halt")
-            break
-        elif instruction == 1:
-            program[parameters[2].register] = parameters[0].value + parameters[1].value
-            ip += 4
-        elif oipode == 2:
-            program[parameters[2].register] = parameters[0].value * parameters[1].value
-            ip += 4
-        elif oipode == 3:
-            program[parameters[0].register] = parameters[0].value
-            ip += 2
-        elif oipode == 4:
-            print(parameters[0].value)
-            ip += 2
-
-    return program
-
-program = [int(x) for x in open("input.txt","r").read().strip().split(',')]
-program = run_program(1, program)
+program = IntcodeProgram([int(x) for x in open("input.txt","r").read().strip().split(',')])
+program.run()
 
