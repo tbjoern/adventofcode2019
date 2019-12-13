@@ -1,4 +1,5 @@
 from time import sleep
+import sys
 from collections import deque
 from itertools import permutations
 import keyboard
@@ -8,6 +9,9 @@ class Parameter:
     def __init__(self, addr, program):
         self.addr = addr
         self.program = program
+
+    def __repr__(self):
+        return f"{self._get_value()}"
 
     def _get_value(self):
         if self.addr not in self.program.registers:
@@ -241,6 +245,16 @@ class IntcodeProgram:
             instruction = Instruction.from_program(self)
             instruction.execute(self)
 
+    def print_instructions(self):
+        counter = 0
+        while counter < len(self.registers): 
+            instruction = Instruction.from_program(self)
+            sys.stdout.write(f"{counter}: ")
+            print(str(instruction))
+            counter += type(instruction).parameter_count()
+
+
+
 class ProgramConnector:
     def __init__(self):
         self.values = deque()
@@ -280,7 +294,16 @@ class ScreenDrawer:
                 self.window.addstr(29, 0, str(tile))
             self.values = []
 
+def hack_paddle():
+    program = IntcodeProgram([int(x) for x in open("input.txt","r").read().strip().split(',')])
+    # for register, content in enumerate(program.program):
+        # if content == 3:
+            # print(register)
+    program.print_instructions()
+
 def main(window):
+    window.nodelay(False)
+    curses.curs_set(0) # hide cursor
     program = IntcodeProgram([int(x) for x in open("input.txt","r").read().strip().split(',')])
     program.run()
     tiles = {}
@@ -295,26 +318,60 @@ def main(window):
     window.addstr(1,0,f"{x_dim} x {y_dim}")
     window.refresh()
     sleep(2)
-    program.reset()
-
-    program.registers[0] = 2
 
     def keyboard_input():
         while True:
-            sleep(0.4)
             window.refresh()
-            if keyboard.is_pressed('a'):
+            sleep(0.005)
+            key = window.getch()
+            window.addstr(28, 0, f"key pressed: {key}")
+            if key == 97 or key == 970:
                 yield -1
-            elif keyboard.is_pressed('d'):
+            elif key == 100:
                 yield 1
             else:
                 yield 0
 
+    def hack_input():
+        paddle_loc = 1584
+        while True:
+            window.refresh()
+            sleep(0.1)
+            key = window.getch()
+            window.addstr(28, 0, f"key pressed: {key}")
+            if key == 97 or key == 970:
+                paddle_loc -= 1
+            elif key == 100:
+                paddle_loc += 1
+            program.registers[paddle_loc - 2] = 3
+            program.registers[paddle_loc - 1] = 3
+            program.registers[paddle_loc] = 3
+            program.registers[paddle_loc + 1] = 3
+            program.registers[paddle_loc + 2] = 3
+            yield 0
+
+
     program.input_gen = keyboard_input()
     program.output_sink = ScreenDrawer(window)
-    program.run()
-    window.addstr(30,0,"Game Over")
-    sleep(2)
 
-    window.getch()
+    while True:
+        window.clear()
+        
+        program.reset()
+        program.registers[0] = 2
+        paddle_loc = 1584
+        for i in range(1564, 1604):
+            program.registers[i] = 3
+
+
+        window.nodelay(True)
+        program.run()
+        window.nodelay(False)
+
+        window.addstr(30,0,"Game Over")
+        window.refresh()
+        window.addstr(31,0,"Press any key to retry")
+        window.getch()
+
 curses.wrapper(main)
+#hack_paddle()
